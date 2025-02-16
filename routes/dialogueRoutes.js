@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Dialogue = require("../models/Dialogue");
+const Player = require("../models/Player");
 
 // Get all dialogues
 router.get("/", async (req, res) => {
@@ -54,56 +55,61 @@ router.get("/next/:choiceId", async (req, res) => {
   }
 });
 
-// Process player choice and return next dialogue
 router.post("/choose/:dialogueId", async (req, res) => {
   try {
-    const { choiceId, playerHistory } = req.body;
+    const { playerId, choiceId } = req.body;
 
-    // Find the current dialogue node
-    const currentDialogue = await Dialogue.findById(req.params.dialogueId);
+    // Find player
+    let player = await Player.findOne({ playerId });
+    if (!player) {
+      return res.status(404).json({ message: "Player not found" });
+    }
+
+    // Find current dialogue
+    const currentDialogue = await Dialogue.findById(player.currentDialogueId);
     if (!currentDialogue)
       return res.status(404).json({ message: "Dialogue not found" });
 
-    // Find the chosen option
+    // Find selected choice
     const selectedChoice = currentDialogue.choices.id(choiceId);
     if (!selectedChoice)
       return res.status(400).json({ message: "Invalid choice" });
 
-    // Convert ObjectId to string before comparison
+    // Check conditions
     if (
       selectedChoice.condition &&
       selectedChoice.condition.requiredPreviousChoiceId
     ) {
-      const requiredId =
-        selectedChoice.condition.requiredPreviousChoiceId.toString();
-      const historyIds = playerHistory.map((id) => id.toString());
-
-      console.log("Converted Required ID:", requiredId);
-      console.log("Converted Player History:", historyIds);
-
-      if (!historyIds.includes(requiredId)) {
-        return res.status(403).json({
-          message: "You do not meet the conditions for this choice.",
-          required: requiredId,
-          history: historyIds,
-        });
+      if (
+        !player.history.includes(
+          selectedChoice.condition.requiredPreviousChoiceId
+        )
+      ) {
+        return res
+          .status(403)
+          .json({ message: "You do not meet the conditions for this choice." });
       }
     }
 
-    // Store the player's choice in their history
-    const updatedHistory = [...playerHistory, choiceId];
+    // Update player history
+    player.history.push(choiceId);
+
+    // Update current dialogue ID
+    player.currentDialogueId =
+      selectedChoice.nextDialogueId || player.currentDialogueId;
+
+    await player.save(); // Save progress
 
     // Retrieve the next dialogue node
     if (!selectedChoice.nextDialogueId) {
       return res.json({
         message: "End of conversation",
-        playerHistory: updatedHistory,
+        playerHistory: player.history,
       });
     }
 
     const nextDialogue = await Dialogue.findById(selectedChoice.nextDialogueId);
-
-    res.json({ nextDialogue, playerHistory: updatedHistory });
+    res.json({ nextDialogue, playerHistory: player.history });
   } catch (err) {
     res.status(500).json({ message: "Server Error", error: err.message });
   }
