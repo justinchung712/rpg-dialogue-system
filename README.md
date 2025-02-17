@@ -1,20 +1,22 @@
 # RPG Dialogue System
 
-A backend system for managing dynamic RPG-style dialogues with conditional choices, built using Node.js, Express, MongoDB, and Jest for testing.
+A backend system for managing dynamic RPG-style dialogues with conditional choices.
 
 ## Features
 
 - Supports NPC dialogues with multiple choices.
 - Implements conditional choices that require previous selections.
-- Stores player progress and history in MongoDB.
+- Tracks player choices to enable branching dialogue paths.
+- Persists conversation state for ongoing interactions.
 - RESTful API endpoints for managing dialogues and player data.
 - Automated tests using Jest and Supertest.
 
 ## Tech Stack
 
-- **Backend:** Node.js, Express
-- **Database:** MongoDB (via Mongoose)
-- **Testing:** Jest, Supertest
+- Backend: Node.js, Express.js
+- Database: MongoDB (Mongoose ODM)
+- Testing: Jest, Supertest
+- Other Tools: Postman (API testing)
 
 ## Project Structure
 
@@ -69,13 +71,32 @@ rpg-dialogue-system
 - `GET /api/dialogues/next/:choiceId` → Retrieves the next dialogue node based on a given choice.
 - `POST /api/dialogues/choose/:dialogueId` → Selects a choice in a dialogue, updates player history, and advances the conversation.
 
-## Example API Request (Using cURL)
+## Example API Requests (Using cURL)
+
+### Create a Player
 
 ```
 curl -X POST http://localhost:5050/api/players/create \
      -H "Content-Type: application/json" \
      -d '{"playerId": "player123", "name": "Hero", "startDialogueId": "abc123xyz"}'
 ```
+
+- `POST`: Creates a new player.
+- `playerId`: A unique identifier for the player.
+- `name`: The player's display name.
+- `startDialogueId`: The dialogue node where the conversation begins.
+
+### Select a Dialogue Choice
+
+```
+curl -X POST http://localhost:5050/api/dialogues/choose/abc123xyz \
+     -H "Content-Type: application/json" \
+     -d '{"playerId": "player123", "choiceId": "choice789"}'
+```
+
+- `POST`: Selects a dialogue choice.
+- `playerId`: The player making the choice.
+- `choiceId`: The selected choice that determines the next dialogue node.
 
 ## License
 
