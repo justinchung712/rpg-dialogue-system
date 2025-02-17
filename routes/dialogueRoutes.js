@@ -73,8 +73,8 @@ router.post("/choose/:dialogueId", async (req, res) => {
       return res.status(404).json({ message: "Player not found" });
     }
 
-    // Find current dialogue
-    const currentDialogue = await Dialogue.findById(player.currentDialogueId);
+    // Find dialogue from the request URL
+    const currentDialogue = await Dialogue.findById(req.params.dialogueId);
     if (!currentDialogue) {
       console.error("Current dialogue not found:", player.currentDialogueId);
       return res.status(404).json({ message: "Dialogue not found" });
