@@ -25,4 +25,8 @@ app.use("/api/dialogues", dialogueRoutes);
 const playerRoutes = require("./routes/playerRoutes");
 app.use("/api/players", playerRoutes);
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+const server = app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
+module.exports = server;

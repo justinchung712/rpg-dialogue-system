@@ -17,9 +17,15 @@ router.post("/create", async (req, res) => {
   try {
     const { playerId, name, startDialogueId } = req.body;
 
+    if (!playerId || !name || !startDialogueId) {
+      console.error("Missing required fields:", req.body);
+      return res.status(400).json({ message: "All fields are required." });
+    }
+
     const existingPlayer = await Player.findOne({ playerId });
     if (existingPlayer) {
-      return res.status(400).json({ message: "Player already exists" });
+      console.error("Player already exists:", playerId);
+      return res.status(400).json({ message: "Player already exists." });
     }
 
     const newPlayer = new Player({
@@ -28,10 +34,12 @@ router.post("/create", async (req, res) => {
       history: [],
       currentDialogueId: startDialogueId,
     });
-
     await newPlayer.save();
+
+    console.log("Player created:", newPlayer);
     res.json({ message: "Player created successfully", player: newPlayer });
   } catch (err) {
+    console.error("Server Error:", err.message);
     res.status(500).json({ message: "Server Error", error: err.message });
   }
 });

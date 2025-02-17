@@ -59,36 +59,64 @@ router.post("/choose/:dialogueId", async (req, res) => {
   try {
     const { playerId, choiceId } = req.body;
 
+    if (!playerId || !choiceId) {
+      console.error("Missing required fields:", req.body);
+      return res
+        .status(400)
+        .json({ message: "playerId and choiceId are required." });
+    }
+
     // Find player
     let player = await Player.findOne({ playerId });
     if (!player) {
+      console.error("Player not found:", playerId);
       return res.status(404).json({ message: "Player not found" });
     }
 
     // Find current dialogue
     const currentDialogue = await Dialogue.findById(player.currentDialogueId);
-    if (!currentDialogue)
+    if (!currentDialogue) {
+      console.error("Current dialogue not found:", player.currentDialogueId);
       return res.status(404).json({ message: "Dialogue not found" });
+    }
 
     // Find selected choice
-    const selectedChoice = currentDialogue.choices.id(choiceId);
-    if (!selectedChoice)
+    console.log("Current dialogue:", currentDialogue._id);
+    const selectedChoice = currentDialogue.choices.find((choice) => {
+      console.log("Found choice:", choice._id.toString());
+      return choice._id.toString() === choiceId;
+    });
+    if (!selectedChoice) {
+      console.error("Invalid choice:", typeof choiceId, choiceId);
       return res.status(400).json({ message: "Invalid choice" });
+    }
+    console.log("Choice selected:", selectedChoice.text);
 
     // Check conditions
     if (
       selectedChoice.condition &&
       selectedChoice.condition.requiredPreviousChoiceId
     ) {
+      console.log("Checking conditions...");
+      console.log("Player history:", player.history);
+      console.log(
+        "Required choice:",
+        selectedChoice.condition.requiredPreviousChoiceId
+      );
+
       if (
         !player.history.includes(
           selectedChoice.condition.requiredPreviousChoiceId
         )
       ) {
+        console.error("Player does NOT meet conditions.");
+
         return res
           .status(403)
           .json({ message: "You do not meet the conditions for this choice." });
       }
+
+      console.log("Player meets conditions.");
     }
 
     // Update player history
